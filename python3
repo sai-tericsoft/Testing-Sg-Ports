@@ -1,46 +1,49 @@
 import boto3
 
-# Initialize the EC2 client for a specific region
-REGION = 'us-east-1'  # Replace with the region you want to check
+# Initialize the EC2 client for the specified region
+REGION = 'us-east-2'  # Updated region to Ohio
 ec2_client = boto3.client('ec2', region_name=REGION)
 
-def get_security_groups_with_open_ports():
+def get_security_groups_with_open_ports(sg_id):
     """
-    Function to fetch all security groups and print their open ports in the specified region.
+    Function to fetch a specific security group and print its open ports.
     """
-    # Fetch all security groups in the region
-    security_groups = ec2_client.describe_security_groups()
+    # Fetch the specified security group
+    security_group = ec2_client.describe_security_groups(GroupIds=[sg_id])
 
-    print(f"Checking for open ports in security groups in region: {REGION}")
-    for sg in security_groups['SecurityGroups']:
-        sg_id = sg['GroupId']
-        sg_name = sg['GroupName']
-        sg_description = sg.get('Description', 'No description')
+    if not security_group['SecurityGroups']:
+        print(f"No security group found with ID: {sg_id}")
+        return
 
-        print(f"\nSecurity Group: {sg_name} (ID: {sg_id})")
-        print(f"Description: {sg_description}")
-        
-        if sg['IpPermissions']:
-            for permission in sg['IpPermissions']:
-                from_port = permission.get('FromPort', 'N/A')
-                to_port = permission.get('ToPort', 'N/A')
-                protocol = permission.get('IpProtocol', 'N/A')
+    sg = security_group['SecurityGroups'][0]
+    sg_name = sg['GroupName']
+    sg_description = sg.get('Description', 'No description')
 
-                # Check for open ports
-                ip_ranges = [ip_range.get('CidrIp') for ip_range in permission.get('IpRanges', [])]
-                ipv6_ranges = [ip_range.get('CidrIpv6') for ip_range in permission.get('Ipv6Ranges', [])]
-                
-                if from_port != 'N/A' and to_port != 'N/A':
-                    print(f"  Open Ports: {from_port} to {to_port} on Protocol: {protocol}")
-                    if ip_ranges:
-                        print(f"  Allowed IPv4 CIDR Ranges: {ip_ranges}")
-                    if ipv6_ranges:
-                        print(f"  Allowed IPv6 CIDR Ranges: {ipv6_ranges}")
-                else:
-                    print("  No specific open ports.")
-        else:
-            print("  No inbound rules (no open ports).")
+    print(f"\nSecurity Group: {sg_name} (ID: {sg_id})")
+    print(f"Description: {sg_description}")
+    
+    if sg['IpPermissions']:
+        for permission in sg['IpPermissions']:
+            from_port = permission.get('FromPort', 'N/A')
+            to_port = permission.get('ToPort', 'N/A')
+            protocol = permission.get('IpProtocol', 'N/A')
+
+            # Check for open ports
+            ip_ranges = [ip_range.get('CidrIp') for ip_range in permission.get('IpRanges', [])]
+            ipv6_ranges = [ip_range.get('CidrIpv6') for ip_range in permission.get('Ipv6Ranges', [])]
+            
+            if from_port != 'N/A' and to_port != 'N/A':
+                print(f"  Open Ports: {from_port} to {to_port} on Protocol: {protocol}")
+                if ip_ranges:
+                    print(f"  Allowed IPv4 CIDR Ranges: {ip_ranges}")
+                if ipv6_ranges:
+                    print(f"  Allowed IPv6 CIDR Ranges: {ipv6_ranges}")
+            else:
+                print("  No specific open ports.")
+    else:
+        print("  No inbound rules (no open ports).")
 
 
 if __name__ == "__main__":
-    get_security_groups_with_open_ports()
+    sg_id = 'sg-0a62f43d8003be02f'  # Updated security group ID
+    get_security_groups_with_open_ports(sg_id)
